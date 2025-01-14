@@ -11,6 +11,7 @@ const Card = ({ card, index, columnId }) => {
         return 'bg-green-300 border-green-300'; // Verde para tareas completadas
       default:
         return 'bg-gray-300 border-gray-300'; // Gris por defecto
+        
     }
   };
 

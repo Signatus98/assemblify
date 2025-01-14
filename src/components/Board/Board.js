@@ -1,46 +1,15 @@
 import { DragDropContext } from '@hello-pangea/dnd';
-import Column from '../Column/Column';
-import { useState, useCallback } from 'react';
 import { v4 as uuidv4 } from 'uuid';
+import Column from '../Column/Column';
+import { useState, useEffect } from 'react';  // Usamos useEffect en caso de que necesitemos gestionar los cambios
 
-const Board = ({ initialColumns }) => {
-  // Columnas por defecto si no se pasan columnas iniciales
-  const defaultColumns = {
-    [uuidv4()]: { title: 'To Do', cards: [] },
-    [uuidv4()]: { title: 'In Progress', cards: [] },
-    [uuidv4()]: { title: 'Finalized', cards: [] },
-  };
+const Board = ({ columns, onDragEnd }) => {
+  // No necesitamos establecer un estado inicial aquí porque recibimos las columnas como prop
+  const [localColumns, setLocalColumns] = useState(columns);
 
-  const [columns, setColumns] = useState(initialColumns || defaultColumns);
-
-  const handleDragEnd = useCallback((result) => {
-    const { source, destination } = result;
-    if (!destination) return; // Si no hay destino, no hacemos nada
-
-    const sourceColumn = columns[source.droppableId];
-    const destinationColumn = columns[destination.droppableId];
-
-    // Si la columna de origen y la de destino son la misma, solo reordenamos las tarjetas
-    if (source.droppableId === destination.droppableId) {
-      const updatedColumns = { ...columns };
-      const [removed] = updatedColumns[source.droppableId].cards.splice(source.index, 1);
-      updatedColumns[destination.droppableId].cards.splice(destination.index, 0, removed);
-      
-      // Solo actualizamos si hay un cambio real en el orden
-      if (JSON.stringify(columns) !== JSON.stringify(updatedColumns)) {
-        setColumns(updatedColumns);
-      }
-    } else {
-      // Si las columnas de origen y destino son diferentes
-      const updatedColumns = { ...columns };
-      const [removed] = updatedColumns[source.droppableId].cards.splice(source.index, 1);
-      updatedColumns[destination.droppableId].cards.splice(destination.index, 0, removed);
-      
-      // Solo actualizamos si hay un cambio real en las columnas
-      if (JSON.stringify(columns) !== JSON.stringify(updatedColumns)) {
-        setColumns(updatedColumns);
-      }
-    }
+  // Este efecto se asegura de que siempre que las columnas cambien en el componente superior (Home), se actualice el estado en Board
+  useEffect(() => {
+    setLocalColumns(columns);
   }, [columns]);
 
   const addTask = (columnId) => {
@@ -48,7 +17,7 @@ const Board = ({ initialColumns }) => {
     if (!taskContent) return;
 
     const newCard = { id: uuidv4(), content: taskContent };
-    const column = columns[columnId];
+    const column = localColumns[columnId];
     const taskExists = column.cards.some((task) => task.content === taskContent);
 
     if (taskExists) {
@@ -56,10 +25,10 @@ const Board = ({ initialColumns }) => {
       return;
     }
 
-    const updatedColumns = { ...columns };
+    const updatedColumns = { ...localColumns };
     updatedColumns[columnId].cards.push(newCard);
 
-    setColumns(updatedColumns);
+    setLocalColumns(updatedColumns);
   };
 
   const addColumn = () => {
@@ -70,27 +39,27 @@ const Board = ({ initialColumns }) => {
     const newColumn = { title: columnName, cards: [] };
 
     // Evitamos duplicados de nombres de columna
-    const columnExists = Object.values(columns).some((col) => col.title === columnName);
+    const columnExists = Object.values(localColumns).some((col) => col.title === columnName);
     if (columnExists) {
       alert('Ya existe una columna con ese nombre.');
       return;
     }
 
-    const updatedColumns = { ...columns };
+    const updatedColumns = { ...localColumns };
     updatedColumns[newColumnId] = newColumn;
 
-    setColumns(updatedColumns);
+    setLocalColumns(updatedColumns);
   };
 
   return (
-    <DragDropContext onDragEnd={handleDragEnd}>
+    <DragDropContext onDragEnd={onDragEnd}>
       <div className="flex space-x-6 p-8 bg-gray-900 min-h-screen">
-        {Object.keys(columns).map((columnId) => (
+        {Object.keys(localColumns).map((columnId) => (
           <Column
             key={columnId}
             columnId={columnId}
-            title={columns[columnId].title}
-            cards={columns[columnId].cards}
+            title={localColumns[columnId].title}
+            cards={localColumns[columnId].cards}
             addTask={() => addTask(columnId)}
           />
         ))}
